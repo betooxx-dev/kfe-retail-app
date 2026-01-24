@@ -41,8 +41,15 @@ export class ProductsController {
   @ApiQuery({ name: 'search', required: false, description: 'Search by name' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number' })
   @ApiQuery({ name: 'perPage', required: false, description: 'Items per page' })
-  async findAll(@Query() query: QueryProductDto): Promise<PaginatedResult<Product>> {
-    return await this.productsService.findAll(query);
+  async findAll(
+    @Query() query: QueryProductDto,
+  ): Promise<PaginatedResult<Product>> {
+    this.logger.log(
+      `Fetching all active products with query parameters: ${JSON.stringify(query)}`,
+    );
+    const products = await this.productsService.findAll(query);
+    this.logger.log(`Fetched ${products.data.length} products`);
+    return products;
   }
 
   @Get(':id')
@@ -74,15 +81,26 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a product (soft delete)' })
+  @ApiOperation({ summary: 'Delete a product (deactivate or soft delete)' })
   @ApiResponse({ status: 200, description: 'Product deleted' })
   @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiQuery({
+    name: 'delete',
+    required: false,
+    description: 'If true, performs soft delete instead of deactivating',
+  })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('delete') softDelete?: string,
   ): Promise<{ message: string }> {
-    this.logger.log(`Deleting product with ID: ${id}`);
-    const result = await this.productsService.remove(id);
-    this.logger.log(`Product with ID: ${id} deleted successfully`);
+    const shouldSoftDelete = softDelete === 'true';
+    this.logger.log(
+      `${shouldSoftDelete ? 'Soft deleting' : 'Deactivating'} product with ID: ${id}`,
+    );
+    const result = await this.productsService.remove(id, shouldSoftDelete);
+    this.logger.log(
+      `Product with ID: ${id} ${shouldSoftDelete ? 'soft deleted' : 'deactivated'} successfully`,
+    );
     return result;
   }
 }

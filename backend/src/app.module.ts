@@ -4,8 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { envs } from '@config/index';
 import { ProductsModule } from '@modules/products/products.module';
-import { ReportsController } from '@modules/reports/reports.controller';
-import { ReportsService } from '@modules/reports/reports.service';
+import { ReportsModule } from '@modules/reports/reports.module';
 import { SalesModule } from '@modules/sales/sales.module';
 
 @Module({
@@ -29,8 +28,7 @@ import { SalesModule } from '@modules/sales/sales.module';
     }),
     ProductsModule,
     SalesModule,
+    ReportsModule,
   ],
-  controllers: [ReportsController],
-  providers: [ReportsService],
 })
 export class AppModule {}

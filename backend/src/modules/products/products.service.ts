@@ -68,14 +68,18 @@ export class ProductsService {
     return await this.productRepository.save(product);
   }
 
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string, softDelete: boolean = false): Promise<{ message: string }> {
     const product = await this.findOne(id);
 
-    product.isActive = false;
+    if (softDelete) {
+      await this.productRepository.softRemove(product);
+      return { message: `Product with ID ${id} successfully soft deleted` };
+    }
 
+    product.isActive = false;
     await this.productRepository.save(product);
 
-    return { message: `Product with ID ${id} successfully deleted` };
+    return { message: `Product with ID ${id} successfully deactivated` };
   }
 
   async updateStock(id: string, quantity: number): Promise<Product> {
