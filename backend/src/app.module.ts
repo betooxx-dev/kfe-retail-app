@@ -3,6 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { envs } from './config';
+import { ProductsModule } from './modules/products/products.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { ReportsController } from './modules/reports/reports.controller';
+import { ReportsService } from './modules/reports/reports.service';
 
 @Module({
   imports: [
@@ -23,8 +27,10 @@ import { envs } from './config';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    ProductsModule,
+    OrdersModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [ReportsController],
+  providers: [ReportsService],
 })
 export class AppModule {}
