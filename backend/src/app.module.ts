@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { envs } from './config';
-import { ProductsModule } from './modules/products/products.module';
-import { OrdersModule } from './modules/orders/orders.module';
-import { ReportsController } from './modules/reports/reports.controller';
-import { ReportsService } from './modules/reports/reports.service';
+import { envs } from '@config/index';
+import { ProductsModule } from '@modules/products/products.module';
+import { ReportsController } from '@modules/reports/reports.controller';
+import { ReportsService } from '@modules/reports/reports.service';
+import { SalesModule } from '@modules/sales/sales.module';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { ReportsService } from './modules/reports/reports.service';
       synchronize: true,
     }),
     ProductsModule,
-    OrdersModule,
+    SalesModule,
   ],
   controllers: [ReportsController],
   providers: [ReportsService],
