@@ -6,8 +6,14 @@ import { SalesController } from './sales.controller';
 import { Sale, SaleItem } from './entities';
 import { ProductsModule } from '@products/products.module';
 
+import { AuthModule } from '../auth/auth.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Sale, SaleItem]), ProductsModule],
+  imports: [
+    TypeOrmModule.forFeature([Sale, SaleItem]),
+    ProductsModule,
+    AuthModule,
+  ],
   controllers: [SalesController],
   providers: [SalesService],
   exports: [SalesService],

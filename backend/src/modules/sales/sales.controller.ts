@@ -7,7 +7,6 @@ import {
   Delete,
   ParseUUIDPipe,
   Query,
-  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 
@@ -15,13 +14,14 @@ import { SalesService } from './sales.service';
 import { CreateSaleDto, QuerySaleDto } from './dto';
 import { Sale } from './entities';
 import { PaginatedResult } from '@common/index';
+import { Auth } from '../auth/decorators';
+import { ValidRoles } from '../auth/interfaces';
 
 @ApiTags('Sales')
 @Controller('sales')
+@Auth(ValidRoles.cashier, ValidRoles.admin)
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
-
-  private readonly logger = new Logger(SalesController.name);
+  constructor(private readonly salesService: SalesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new sale' })
@@ -31,9 +31,7 @@ export class SalesController {
     description: 'Invalid data or insufficient stock',
   })
   async create(@Body() createSaleDto: CreateSaleDto): Promise<Sale> {
-    this.logger.log('Creating a new sale');
     const sale = await this.salesService.create(createSaleDto);
-    this.logger.log(`Sale created with ID: ${sale.id}`);
     return sale;
   }
 
@@ -61,7 +59,6 @@ export class SalesController {
   @ApiResponse({ status: 200, description: 'Sale found' })
   @ApiResponse({ status: 404, description: 'Sale not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Sale> {
-    this.logger.log(`Fetching sale with ID: ${id}`);
     return await this.salesService.findOne(id);
   }
 
@@ -72,7 +69,6 @@ export class SalesController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ message: string }> {
-    this.logger.log(`Deleting sale with ID: ${id}`);
     return await this.salesService.remove(id);
   }
 }

@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
-  Logger,
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
@@ -16,23 +15,21 @@ import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto, QueryProductDto } from './dto';
 import { Product } from './entities/product.entity';
 import { PaginatedResult } from '@common/index';
+import { Auth } from '../auth/decorators';
+import { ValidRoles } from '../auth/interfaces';
 
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
-
-  private readonly logger = new Logger(ProductsController.name);
+  constructor(private readonly productsService: ProductsService) { }
 
   @Post()
+  @Auth(ValidRoles.admin)
   @ApiOperation({ summary: 'Create a new product' })
   @ApiResponse({ status: 201, description: 'Product created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid data' })
   async create(@Body() createProductDto: CreateProductDto): Promise<Product> {
-    this.logger.log('Creating a new product');
-    const product = await this.productsService.create(createProductDto);
-    this.logger.log(`Product created with ID: ${product.id}`);
-    return product;
+    return await this.productsService.create(createProductDto);
   }
 
   @Get()
@@ -44,12 +41,7 @@ export class ProductsController {
   async findAll(
     @Query() query: QueryProductDto,
   ): Promise<PaginatedResult<Product>> {
-    this.logger.log(
-      `Fetching all active products with query parameters: ${JSON.stringify(query)}`,
-    );
-    const products = await this.productsService.findAll(query);
-    this.logger.log(`Fetched ${products.data.length} products`);
-    return products;
+    return await this.productsService.findAll(query);
   }
 
   @Get(':id')
@@ -57,13 +49,11 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Product found' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Product> {
-    this.logger.log(`Fetching product with ID: ${id}`);
-    const product = await this.productsService.findOne(id);
-    this.logger.log(`Product with ID: ${id} fetched successfully`);
-    return product;
+    return await this.productsService.findOne(id);
   }
 
   @Patch(':id')
+  @Auth(ValidRoles.admin)
   @ApiOperation({ summary: 'Update a product' })
   @ApiResponse({ status: 200, description: 'Product updated' })
   @ApiResponse({ status: 404, description: 'Product not found' })
@@ -71,16 +61,11 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
   ): Promise<Product> {
-    this.logger.log(`Updating product with ID: ${id}`);
-    const updatedProduct = await this.productsService.update(
-      id,
-      updateProductDto,
-    );
-    this.logger.log(`Product with ID: ${id} updated successfully`);
-    return updatedProduct;
+    return await this.productsService.update(id, updateProductDto);
   }
 
   @Delete(':id')
+  @Auth(ValidRoles.admin)
   @ApiOperation({ summary: 'Delete a product (deactivate or soft delete)' })
   @ApiResponse({ status: 200, description: 'Product deleted' })
   @ApiResponse({ status: 404, description: 'Product not found' })
@@ -93,14 +78,6 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query('delete') softDelete?: string,
   ): Promise<{ message: string }> {
-    const shouldSoftDelete = softDelete === 'true';
-    this.logger.log(
-      `${shouldSoftDelete ? 'Soft deleting' : 'Deactivating'} product with ID: ${id}`,
-    );
-    const result = await this.productsService.remove(id, shouldSoftDelete);
-    this.logger.log(
-      `Product with ID: ${id} ${shouldSoftDelete ? 'soft deleted' : 'deactivated'} successfully`,
-    );
-    return result;
+    return await this.productsService.remove(id, softDelete === 'true');
   }
 }

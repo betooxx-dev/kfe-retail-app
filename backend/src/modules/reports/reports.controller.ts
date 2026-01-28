@@ -15,13 +15,14 @@ import {
   DailySalesChart,
 } from './interfaces';
 import { ParseDatePipe } from '@common/index';
+import { Auth } from '../auth/decorators';
+import { ValidRoles } from '../auth/interfaces';
 
 @ApiTags('Reports')
 @Controller('reports')
+@Auth(ValidRoles.manager, ValidRoles.admin)
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
-
-  private readonly logger = new Logger(ReportsController.name);
+  constructor(private readonly reportsService: ReportsService) { }
 
   @Get('sales-by-date')
   @ApiOperation({ summary: 'Get sales report by date range' })
@@ -43,12 +44,7 @@ export class ReportsController {
     @Query('start', ParseDatePipe) start: Date,
     @Query('end', ParseDatePipe) end: Date,
   ): Promise<SalesByDateReport> {
-    this.logger.log(
-      `Generating sales report from ${start.toISOString()} to ${end.toISOString()}`,
-    );
-    const sales = await this.reportsService.getSalesByDate(start, end);
-    this.logger.log(`Generated sales report with ${sales.totalSales} sales`);
-    return sales;
+    return await this.reportsService.getSalesByDate(start, end);
   }
 
   @Get('top-products')
@@ -62,10 +58,7 @@ export class ReportsController {
   async getTopProducts(
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<TopProductReport[]> {
-    this.logger.log(`Fetching top ${limit} products`);
-    const products = await this.reportsService.getTopProducts(limit);
-    this.logger.log(`Fetched top ${products.length} products`);
-    return products;
+    return await this.reportsService.getTopProducts(limit);
   }
 
   @Get('daily-sales-chart')
@@ -85,11 +78,6 @@ export class ReportsController {
     @Query('start', ParseDatePipe) start: Date,
     @Query('end', ParseDatePipe) end: Date,
   ): Promise<DailySalesChart[]> {
-    this.logger.log(
-      `Generating daily sales chart from ${start.toISOString()} to ${end.toISOString()}`,
-    );
-    const chart = await this.reportsService.getDailySalesChart(start, end);
-    this.logger.log(`Generated daily sales chart with ${chart.length} entries`);
-    return chart;
+    return await this.reportsService.getDailySalesChart(start, end);
   }
 }
