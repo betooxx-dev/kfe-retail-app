@@ -23,21 +23,26 @@ export class SeedService {
     ) { }
 
     async run() {
-        await this.cleanDatabase();
-        await this.seedUsers();
-        await this.seedProductsAndSales();
-        return 'SEED EXECUTED';
+        try {
+            await this.cleanDatabase();
+            await this.seedUsers();
+            await this.seedProductsAndSales();
+            return 'SEED EXECUTED';
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
     }
 
     private async cleanDatabase() {
-        await this.saleItemRepository.delete({});
-        await this.saleRepository.delete({});
-        await this.productRepository.delete({});
-        await this.userRepository.delete({});
+        await this.saleItemRepository.createQueryBuilder().delete().execute();
+        await this.saleRepository.createQueryBuilder().delete().execute();
+        await this.productRepository.createQueryBuilder().delete().execute();
+        await this.userRepository.createQueryBuilder().delete().execute();
     }
 
     private async seedUsers() {
-        const password = bcrypt.hashSync('123456', 10);
+        const password = bcrypt.hashSync('123456aB#', 10);
 
         const users = [
             {
@@ -130,7 +135,7 @@ export class SeedService {
         }
 
         for (const product of products) {
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 10; i++) {
                 const quantity = Math.floor(Math.random() * 5) + 1;
                 const total = parseFloat((product.price * quantity).toFixed(2));
 

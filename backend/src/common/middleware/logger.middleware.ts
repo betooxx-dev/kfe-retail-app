@@ -5,6 +5,8 @@ import { formatDate } from '../utils';
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
     use(req: Request, res: Response, next: NextFunction) {
+        const logger = new Logger('MiddlewareLogger');
+
         const { method, originalUrl: url, ip } = req;
         const start = Date.now();
 
@@ -14,7 +16,7 @@ export class LoggerMiddleware implements NestMiddleware {
             const responseTime = Date.now() - start;
             const timestamp = formatDate(new Date());
 
-            Logger.log(
+            logger.log(
                 `[${timestamp}] ${method} ${url} - Status: ${statusCode} - Content-Length: ${contentLength} bytes - Response Time: ${responseTime} ms - Client IP: ${ip}`,
             );
         });
