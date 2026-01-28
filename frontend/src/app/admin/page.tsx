@@ -1,6 +1,6 @@
 "use client";
 
-import AdminPage from "@/components/pages/AdminPage";
+import AdminPage from "@/components/views/AdminPage";
 
 export default function Page() {
     return <AdminPage />;

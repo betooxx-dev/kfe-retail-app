@@ -17,11 +17,11 @@ export class ReportsService {
     private readonly saleRepository: Repository<Sale>,
     @InjectRepository(SaleItem)
     private readonly saleItemRepository: Repository<SaleItem>,
-  ) {}
+  ) { }
 
   async getSalesByDate(start: Date, end: Date): Promise<SalesByDateReport> {
     const endOfDay = new Date(end);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     const sales = await this.saleRepository.find({
       where: {
@@ -67,7 +67,7 @@ export class ReportsService {
 
   async getDailySalesChart(start: Date, end: Date): Promise<DailySalesChart[]> {
     const endOfDay = new Date(end);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     const result = await this.saleRepository
       .createQueryBuilder('sale')
