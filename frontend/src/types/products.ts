@@ -1,7 +1,7 @@
 export interface Product {
     id: string;
     name: string;
-    price: number | string; // Handle potential string from forms or api
+    price: number | string;
     stock: number;
     isActive: boolean;
     createdAt?: string;
@@ -31,5 +31,6 @@ export interface PaginatedResult<T> {
 export interface ProductQueryParams {
     page?: number;
     perPage?: number;
+    limit?: number;
     search?: string;
 }

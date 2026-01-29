@@ -18,12 +18,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }, []);
 
     useEffect(() => {
-        if (isMounted && !isAuthenticated) {
-            router.push("/login");
-        }
+        if (isMounted && !isAuthenticated) router.push("/login");
     }, [isMounted, isAuthenticated, router]);
 
     if (!isMounted || !isAuthenticated) return null;
-    
+
     return <>{children}</>;
 }

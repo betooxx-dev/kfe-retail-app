@@ -1,7 +1,16 @@
+export interface SaleItem {
+    id: string;
+    quantity: number;
+    price: number;
+    product: {
+        name: string;
+    };
+}
+
 export interface Sale {
     id: string;
     total: number;
-    items: any[];
+    items: SaleItem[];
     createdAt: string;
 }
 

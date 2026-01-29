@@ -15,14 +15,15 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-  ) {}
+  ) { }
 
   async create(createProductDto: CreateProductDto): Promise<Product> {
     return await this.productRepository.save(createProductDto);
   }
 
   async findAll(query: QueryProductDto): Promise<PaginatedResult<Product>> {
-    const { search, page = 1, perPage = DEFAULT_PER_PAGE } = query;
+    const { search, page = 1, perPage, limit } = query;
+    const actualPerPage = perPage || limit || DEFAULT_PER_PAGE;
 
     const where: any = { isActive: true };
 
@@ -31,8 +32,8 @@ export class ProductsService {
     const [data, total] = await this.productRepository.findAndCount({
       where,
       order: { createdAt: 'DESC' },
-      skip: (page - 1) * perPage,
-      take: perPage,
+      skip: (page - 1) * actualPerPage,
+      take: actualPerPage,
     });
 
     return {
@@ -40,8 +41,8 @@ export class ProductsService {
       meta: {
         total,
         page,
-        perPage,
-        totalPages: Math.ceil(total / perPage),
+        perPage: actualPerPage,
+        totalPages: Math.ceil(total / actualPerPage),
       },
     };
   }

@@ -16,4 +16,11 @@ export class PaginationQueryDto {
   @IsInt()
   @Min(1)
   perPage?: number;
+
+  @ApiPropertyOptional({ description: 'Alias for perPage', example: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
 }

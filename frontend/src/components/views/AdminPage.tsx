@@ -54,13 +54,13 @@ export default function AdminPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this product?")) return;
+        if (!confirm("¿Está seguro de que desea eliminar este producto?")) return;
         try {
             await ProductsService.remove(id);
             loadProducts(meta.page, debouncedSearch);
         } catch (error) {
             console.error("Failed to delete product", error);
-            alert("Failed to delete product");
+            alert("Error al eliminar el producto");
         }
     };
 
@@ -76,7 +76,7 @@ export default function AdminPage() {
             loadProducts(meta.page, debouncedSearch);
         } catch (error) {
             console.error("Failed to save product", error);
-            alert("Failed to save product");
+            alert("Error al guardar el producto");
         } finally {
             setIsSubmitting(false);
         }
@@ -88,7 +88,7 @@ export default function AdminPage() {
 
     const navItems = [
         {
-            name: "Products",
+            name: "Productos",
             href: "/admin",
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,14 +104,14 @@ export default function AdminPage() {
                 <div className="flex flex-col space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-2xl font-light text-[#4A3B32]">Products</h2>
-                            <p className="text-sm text-gray-500 mt-1">Manage your coffee shop inventory</p>
+                            <h2 className="text-2xl font-light text-[#4A3B32]">Productos</h2>
+                            <p className="text-sm text-gray-500 mt-1">Gestiona el inventario de tu cafetería</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="relative">
                                 <input
                                     type="text"
-                                    placeholder="Search products..."
+                                    placeholder="Buscar productos..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A3B32] focus:border-[#4A3B32] transition-colors"
@@ -127,7 +127,7 @@ export default function AdminPage() {
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
-                                <span>Add Product</span>
+                                <span>Agregar Producto</span>
                             </button>
                         </div>
                     </div>
