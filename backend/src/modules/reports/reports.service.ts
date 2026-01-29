@@ -19,26 +19,51 @@ export class ReportsService {
     private readonly saleItemRepository: Repository<SaleItem>,
   ) { }
 
-  async getSalesByDate(start: Date, end: Date): Promise<SalesByDateReport> {
-    const endOfDay = new Date(end);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+  async getSalesByDate(
+    start: Date,
+    end: Date,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<SalesByDateReport> {
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
 
-    const sales = await this.saleRepository.find({
-      where: {
-        createdAt: Between(start, endOfDay),
-      },
-      relations: ['items', 'items.product'],
-      order: { createdAt: 'DESC' },
-    });
+    // Using string literals for the day range ensures we query "Wall Time" stored in DB
+    // e.g. 2026-01-28 00:00:00 to 2026-01-28 23:59:59.999
+    const qb = this.saleRepository
+      .createQueryBuilder('sale')
+      .leftJoinAndSelect('sale.items', 'saleItem')
+      .leftJoinAndSelect('saleItem.product', 'product')
+      .where('sale.createdAt BETWEEN :start AND :end', {
+        start: `${startStr} 00:00:00`,
+        end: `${endStr} 23:59:59.999`
+      });
 
-    const totalRevenue = sales.reduce(
-      (sum, sale) => sum + Number(sale.total),
-      0,
-    );
+    if (search) {
+      qb.andWhere(
+        'sale.id IN (SELECT "si"."saleId" FROM "sale_items" "si" LEFT JOIN "products" "p" ON "si"."productId" = "p"."id" WHERE "p"."name" ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const totalsQb = qb.clone();
+    const totalSalesCount = await totalsQb.getCount();
+
+    const { totalRevenue } = await totalsQb
+      .select('SUM(sale.total)', 'totalRevenue')
+      .orderBy()
+      .getRawOne();
+
+    const sales = await qb
+      .orderBy('sale.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
     return {
-      totalSales: sales.length,
-      totalRevenue,
+      totalSales: totalSalesCount,
+      totalRevenue: Number(totalRevenue) || 0,
       sales,
     };
   }
@@ -66,8 +91,8 @@ export class ReportsService {
   }
 
   async getDailySalesChart(start: Date, end: Date): Promise<DailySalesChart[]> {
-    const endOfDay = new Date(end);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
 
     const result = await this.saleRepository
       .createQueryBuilder('sale')
@@ -75,8 +100,8 @@ export class ReportsService {
       .addSelect('COUNT(sale.id)', 'totalSales')
       .addSelect('SUM(sale.total)', 'totalRevenue')
       .where('sale.createdAt BETWEEN :start AND :end', {
-        start,
-        end: endOfDay,
+        start: `${startStr} 00:00:00`,
+        end: `${endStr} 23:59:59.999`,
       })
       .groupBy('DATE(sale.createdAt)')
       .orderBy('date', 'ASC')

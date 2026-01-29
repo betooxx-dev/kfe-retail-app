@@ -24,12 +24,12 @@ export class Product {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn({ type: 'timestamp', precision: 6, default: () => "(NOW() AT TIME ZONE 'America/Mexico_City')" })
   createdAt: Date;
 
-  @UpdateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({ type: 'timestamp', precision: 6, default: () => "(NOW() AT TIME ZONE 'America/Mexico_City')" })
   updatedAt: Date;
 
-  @DeleteDateColumn({ default: () => 'NULL' })
+  @DeleteDateColumn({ type: 'timestamp', precision: 6, default: () => 'NULL' })
   deletedAt: Date | null;
 }

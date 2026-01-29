@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual, DataSource } from 'typeorm';
 
 import { CreateSaleDto, QuerySaleDto } from './dto';
 import { Sale, SaleItem } from './entities';
@@ -19,7 +19,8 @@ export class SalesService {
     @InjectRepository(SaleItem)
     private readonly saleItemRepository: Repository<SaleItem>,
     private readonly productsService: ProductsService,
-  ) {}
+    private readonly dataSource: DataSource,
+  ) { }
 
   async create(createSaleDto: CreateSaleDto): Promise<Sale> {
     const { items } = createSaleDto;
@@ -27,36 +28,52 @@ export class SalesService {
     if (!items || items.length === 0)
       throw new BadRequestException('Sale must have at least one item');
 
-    let total = 0;
-    const saleItems: Partial<SaleItem>[] = [];
+    return await this.dataSource.transaction(async (manager) => {
+      let total = 0;
+      const productsToProcess: { product: any; quantity: number; price: number }[] = [];
 
-    for (const item of items) {
-      const product = await this.productsService.findOne(item.productId);
+      for (const item of items) {
+        const product = await this.productsService.findOne(item.productId);
 
-      if (product.stock < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for product ${product.name}. Available: ${product.stock}`,
-        );
+        if (product.stock < item.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for product ${product.name}. Available: ${product.stock}`,
+          );
+        }
+
+        const itemTotal = Number(product.price) * item.quantity;
+        total += itemTotal;
+        productsToProcess.push({ product, quantity: item.quantity, price: product.price });
       }
 
-      const itemTotal = Number(product.price) * item.quantity;
-      total += itemTotal;
-
-      saleItems.push({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: product.price,
+      const sale = manager.create(Sale, {
+        total,
+        items: [],
       });
+      const savedSale = await manager.save(sale);
 
-      await this.productsService.updateStock(item.productId, -item.quantity);
-    }
+      const savedItems: SaleItem[] = [];
 
-    const sale = this.saleRepository.create({
-      total,
-      items: saleItems as SaleItem[],
+      for (const itemData of productsToProcess) {
+        const saleItem = manager.create(SaleItem, {
+          quantity: itemData.quantity,
+          price: itemData.price,
+          sale: savedSale,
+          product: itemData.product,
+        });
+
+        const savedItem = await manager.save(saleItem);
+        savedItems.push(savedItem);
+
+        const product = itemData.product;
+        product.stock -= itemData.quantity;
+        await manager.save(product);
+      }
+
+      savedSale.items = savedItems;
+
+      return savedSale;
     });
-
-    return await this.saleRepository.save(sale);
   }
 
   async findAll(query: QuerySaleDto): Promise<PaginatedResult<Sale>> {
@@ -66,13 +83,13 @@ export class SalesService {
 
     if (startDate && endDate) {
       where.createdAt = Between(
-        new Date(startDate),
-        new Date(endDate + 'T23:59:59'),
+        `${startDate} 00:00:00`,
+        `${endDate} 23:59:59`,
       );
     } else if (startDate) {
-      where.createdAt = MoreThanOrEqual(new Date(startDate));
+      where.createdAt = MoreThanOrEqual(`${startDate} 00:00:00`);
     } else if (endDate) {
-      where.createdAt = LessThanOrEqual(new Date(endDate + 'T23:59:59'));
+      where.createdAt = LessThanOrEqual(`${endDate} 23:59:59`);
     }
 
     const [data, total] = await this.saleRepository.findAndCount({

@@ -40,11 +40,35 @@ export class ReportsController {
     required: true,
     description: 'End date (YYYY-MM-DD)',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search term for product name',
+  })
   async getSalesByDate(
     @Query('start', ParseDatePipe) start: Date,
     @Query('end', ParseDatePipe) end: Date,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ): Promise<SalesByDateReport> {
-    return await this.reportsService.getSalesByDate(start, end);
+    return await this.reportsService.getSalesByDate(
+      start,
+      end,
+      page,
+      limit,
+      search,
+    );
   }
 
   @Get('top-products')

@@ -31,33 +31,60 @@ export default function ReportsContent() {
     const [topProducts, setTopProducts] = useState<TopProductReport[]>([]);
     const [dailySales, setDailySales] = useState<DailySalesChart[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isTableLoading, setIsTableLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const itemsPerPage = 5;
 
-    const loadData = useCallback(async () => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setCurrentPage(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const fetchDashboardStats = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [salesData, topData, chartData] = await Promise.all([
-                ReportsService.getSalesByDate(startDate, endDate),
+            const [topData, chartData] = await Promise.all([
                 ReportsService.getTopProducts(3),
                 ReportsService.getDailySalesChart(startDate, endDate)
             ]);
-
-            setSalesReport(salesData);
             setTopProducts(topData);
             setDailySales(chartData);
         } catch (error) {
-            console.error("Failed to load reports", error);
+            console.error("Failed to load dashboard stats", error);
         } finally {
             setIsLoading(false);
         }
     }, [startDate, endDate]);
 
+    const fetchSalesList = useCallback(async () => {
+        setIsTableLoading(true);
+        try {
+            const salesData = await ReportsService.getSalesByDate(startDate, endDate, currentPage, itemsPerPage, debouncedSearch);
+            setSalesReport(salesData);
+        } catch (error) {
+            console.error("Failed to load sales list", error);
+        } finally {
+            setIsTableLoading(false);
+        }
+    }, [startDate, endDate, currentPage, debouncedSearch]);
+
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        fetchDashboardStats();
+    }, [fetchDashboardStats]);
+
+    useEffect(() => {
+        fetchSalesList();
+    }, [fetchSalesList]);
 
     const handleRangeChange = (days: number) => {
         setStartDate(format(startOfDay(subDays(new Date(), days)), "yyyy-MM-dd"));
         setEndDate(format(endOfDay(new Date()), "yyyy-MM-dd"));
+        setCurrentPage(1);
     };
 
     const navItems = [
@@ -71,6 +98,16 @@ export default function ReportsContent() {
             )
         }
     ];
+
+    const totalItems = salesReport?.totalSales || 0;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const salesList = salesReport?.sales || [];
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
 
 
     return (
@@ -202,10 +239,29 @@ export default function ReportsContent() {
 
                             {/* Recent Sales Table */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="px-6 py-4 border-b border-gray-100">
+                                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <h3 className="text-lg font-medium text-gray-900">Ventas Recientes</h3>
+
+                                    {/* Search Bar */}
+                                    <div className="relative w-full sm:w-64">
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar items..."
+                                            className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A3B32]/20 focus:border-[#4A3B32] transition-colors"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto relative">
+                                    {isTableLoading && (
+                                        <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+                                            <div className="w-6 h-6 border-2 border-[#4A3B32] border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
                                     <table className="w-full text-left text-sm">
                                         <thead className="bg-gray-50 text-gray-500 font-medium">
                                             <tr>
@@ -215,7 +271,7 @@ export default function ReportsContent() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {(salesReport?.sales || []).slice(0, 10).map((sale) => (
+                                            {salesList.map((sale) => (
                                                 <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-6 py-3 text-gray-900">
                                                         {format(new Date(sale.createdAt), "dd MMM yyyy, h:mm a")}
@@ -234,16 +290,41 @@ export default function ReportsContent() {
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {(!(salesReport?.sales || []).length) && (
+                                            {(!salesList.length) && (
                                                 <tr>
                                                     <td colSpan={3} className="px-6 py-8 text-center text-gray-400">
-                                                        No hay ventas en este periodo
+                                                        {debouncedSearch ? "No se encontraron ventas con ese producto" : "No hay ventas en este periodo"}
                                                     </td>
                                                 </tr>
                                             )}
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Pagination Controls */}
+                                {totalItems > itemsPerPage && (
+                                    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                                        <div className="text-xs text-gray-500">
+                                            Página {currentPage} de {totalPages} ({totalItems} ventas)
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => handlePageChange(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm"
+                                            >
+                                                Anterior
+                                            </button>
+                                            <button
+                                                onClick={() => handlePageChange(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className="px-3 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer shadow-sm"
+                                            >
+                                                Siguiente
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
